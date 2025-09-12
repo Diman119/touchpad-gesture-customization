@@ -7,15 +7,6 @@ import {SwipeTracker} from 'resource:///org/gnome/shell/ui/swipeTracker.js';
 import {createSwipeTracker} from './swipeTracker.js';
 import {ExtSettings, TouchpadConstants} from '../constants.js';
 
-const BrightnessProxy = Gio.DBusProxy.makeProxyWrapper(
-    loadInterfaceXML('org.gnome.SettingsDaemon.Power.Screen')
-) as unknown as new (
-    connection: Gio.DBusConnection,
-    name: string | null,
-    objectPath: string,
-    callback?: (proxy: Gio.DBusProxy, error: Error | null) => void
-) => Gio.DBusProxy;
-
 export class BrightnessControlGestureExtension implements ISubExtension {
     private _verticalSwipeTracker?: SwipeTracker;
     private _horizontalSwipeTracker?: SwipeTracker;
@@ -25,6 +16,24 @@ export class BrightnessControlGestureExtension implements ISubExtension {
     private _lastOsdShowTimestamp: number = 0;
 
     apply() {
+        const iface = loadInterfaceXML('org.gnome.SettingsDaemon.Power.Screen');
+
+        if (iface === null) {
+            console.error('D-Bus interface for brightness is missing');
+
+            this._brightnessProxy = undefined;
+            return;
+        }
+
+        const BrightnessProxy = Gio.DBusProxy.makeProxyWrapper(
+            iface
+        ) as unknown as new (
+            connection: Gio.DBusConnection,
+            name: string | null,
+            objectPath: string,
+            callback?: (proxy: Gio.DBusProxy, error: Error | null) => void
+        ) => Gio.DBusProxy;
+
         this._brightnessProxy = new BrightnessProxy(
             Gio.DBus.session,
             'org.gnome.SettingsDaemon.Power',

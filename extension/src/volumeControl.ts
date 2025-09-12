@@ -149,7 +149,10 @@ export class VolumeControlGestureExtension implements ISubExtension {
     }
 
     _gestureUpdate(_tracker: SwipeTracker, progress: number): void {
-        if (this._sink === undefined) {
+        console.error('touchpad-gesture-customization');
+        console.error(`Progress: ${progress}`);
+
+        if (this._sink === undefined || progress === undefined) {
             return;
         }
 
