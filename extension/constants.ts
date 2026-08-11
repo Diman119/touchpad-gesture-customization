@@ -41,6 +41,7 @@ export const ExtSettings = {
     DEFAULT_OVERVIEW_GESTURE_DIRECTION: true,
     INVERT_VOLUME_DIRECTION: false,
     INVERT_BRIGHTNESS_DIRECTION: false,
+    INVERT_MEDIA_DIRECTION: false,
 };
 
 export const RELOAD_DELAY = 150; // reload extension delay in ms
