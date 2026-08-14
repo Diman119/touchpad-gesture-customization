@@ -2,6 +2,7 @@ import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import Shell from 'gi://Shell';
 import St from 'gi://St';
+import Gio from 'gi://Gio';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {WindowSwitcherPopup} from 'resource:///org/gnome/shell/ui/altTab.js';
 import {AltTabConstants, ExtSettings} from '../constants.js';
@@ -150,6 +151,16 @@ export default class AltTabGestureExtension implements ISubExtension {
         );
 
         this._extState = AltTabExtState.DEFAULT;
+
+        const windowSwitcherSettings = new Gio.Settings({
+            schema_id: 'org.gnome.shell.window-switcher',
+        });
+
+        if (ExtSettings.ALTTAB_ALL_WORKSPACES) {
+            windowSwitcherSettings.set_boolean('current-workspace-only', false);
+        } else {
+            windowSwitcherSettings.set_boolean('current-workspace-only', true);
+        }
     }
 
     destroy(): void {
@@ -298,8 +309,16 @@ export default class AltTabGestureExtension implements ISubExtension {
     _gestureEnd(): void {
         if (this._switcher) {
             const win =
-                this._switcher._items[this._switcher._selectedIndex].window;
-            Main.activateWindow(win);
+                this._switcher._items[this._switcher._selectedIndex]?.window;
+
+            if (win) {
+                if (typeof win.activate === 'function') {
+                    win.activate(global.get_current_time());
+                } else {
+                    Main.activateWindow(win);
+                }
+            }
+
             this._switcher.destroy();
             this._switcher = undefined;
         }
