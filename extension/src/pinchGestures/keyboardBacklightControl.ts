@@ -17,34 +17,32 @@ export class PinchKeyboardBacklightControlExtension implements ISubExtension {
             'org.gnome.SettingsDaemon.Power.Keyboard'
         );
 
-        if (iface === null) {
+        if (iface !== null) {
+            const BrightnessProxy = Gio.DBusProxy.makeProxyWrapper(
+                iface
+            ) as unknown as new (
+                connection: Gio.DBusConnection,
+                name: string | null,
+                objectPath: string,
+                callback?: (proxy: Gio.DBusProxy, error: Error | null) => void
+            ) => Gio.DBusProxy;
+
+            this._brightnessProxy = new BrightnessProxy(
+                Gio.DBus.session,
+                'org.gnome.SettingsDaemon.Power',
+                '/org/gnome/SettingsDaemon/Power',
+                (proxy, error) => {
+                    if (error)
+                        console.error(
+                            `Failed to connect to the ${proxy.g_interface_name} D-Bus interface`,
+                            error
+                        );
+                }
+            );
+        } else {
             console.error('D-Bus interface for keyboard backlight is missing');
-
             this._brightnessProxy = undefined;
-            return;
         }
-
-        const BrightnessProxy = Gio.DBusProxy.makeProxyWrapper(
-            iface
-        ) as unknown as new (
-            connection: Gio.DBusConnection,
-            name: string | null,
-            objectPath: string,
-            callback?: (proxy: Gio.DBusProxy, error: Error | null) => void
-        ) => Gio.DBusProxy;
-
-        this._brightnessProxy = new BrightnessProxy(
-            Gio.DBus.session,
-            'org.gnome.SettingsDaemon.Power',
-            '/org/gnome/SettingsDaemon/Power',
-            (proxy, error) => {
-                if (error)
-                    console.error(
-                        `Failed to connect to the ${proxy.g_interface_name} D-Bus interface`,
-                        error
-                    );
-            }
-        );
 
         this._pinchTracker = new TouchpadPinchGesture({
             nfingers: this._nfingers,
@@ -86,6 +84,10 @@ export class PinchKeyboardBacklightControlExtension implements ISubExtension {
         this._brightnessProxy.Brightness = value;
     }
 
+    get _brightnessSteps() {
+        return this._brightnessProxy?.Steps ?? 0;
+    }
+
     _showOsd(level: number) {
         // If osd is updated too frequently, it may lag or freeze, so cap it to 30 fps
         const nowTimestamp = new Date().getTime();
@@ -112,9 +114,14 @@ export class PinchKeyboardBacklightControlExtension implements ISubExtension {
     }
 
     _gestureUpdate(_tracker: unknown, progress: number): void {
-        const brightness = Math.round(progress * 100);
-        this._brightness = brightness;
-        this._showOsd(progress);
+        const interval = this._brightnessSteps - 1;
+        const brightness =
+            interval > 0 && interval <= 50
+                ? Math.round(progress * interval) / interval
+                : progress;
+        this._brightness = brightness * 100;
+
+        this._showOsd(brightness);
     }
 
     _gestureEnd(
