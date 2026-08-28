@@ -3,6 +3,7 @@ import Gio from 'gi://Gio';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {TouchpadPinchGesture} from './pinchTracker.js';
 import {loadInterfaceXML} from 'resource:///org/gnome/shell/misc/fileUtils.js';
+import {OSD_FRAMETIME_CAP_MS} from '../../constants.js';
 
 export class PinchKeyboardBacklightControlExtension implements ISubExtension {
     private _pinchTracker?: typeof TouchpadPinchGesture.prototype;
@@ -92,7 +93,7 @@ export class PinchKeyboardBacklightControlExtension implements ISubExtension {
         // If osd is updated too frequently, it may lag or freeze, so cap it to 30 fps
         const nowTimestamp = new Date().getTime();
 
-        if (nowTimestamp - this._lastOsdShowTimestamp < 1000 / 30) {
+        if (nowTimestamp - this._lastOsdShowTimestamp < OSD_FRAMETIME_CAP_MS) {
             return;
         }
 
